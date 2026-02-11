@@ -67,4 +67,61 @@ const storage = multer.diskStorage({
  * @param {Object} file - El archivo subido
  * @param {Function} cb - Callback que se llama con (error, acceptFile)
  */
-   
+ const fileFilter = (req, file, cb) => {
+    //Tipos de archivos permitidos para imagenes
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+
+    //verificar si el tipo de archivo esta en la lista de permitidos
+    if (allowedTypes.includes(file.mimetype)) {
+        //cb(null, true); -> aceptar el archivo
+        cb(null, true);
+    } else {
+        //cb(error) -> rechazar el archivo con un error
+        cb(new Error('Archivo no permitido. Solo se permiten imagenes (jpeg, jpg, png, gif).'), false);
+    }
+};
+/** configurar multer con las opciones definidas 
+ * 
+*/
+const upload = multer({
+    storage: storage, //configuracion de almacenamiento
+    fileFilter: fileFilter, //filtro de tipo de archivo
+    limits: {
+        //limite de tamaño del archivo en bytes
+        //por defecto 5MB (5 * 1024 * 1024 bytes)
+        filesize: parseInt(process.env.MAX_FILE_SIZE) || 524288000
+    }          
+});
+
+/**
+ *  Funcion para eliminar el archivo del servidor 
+ * Util cuando se actualiza o eliminar el producto 
+ * 
+ * @param {string} filename - El nombre del archivo a eliminar
+ * @returns {Boolean} - True si se elimino, false si hubo error
+ */
+
+const deleteFile = (filename) => {
+    try {
+        //Construir la ruta completa del archivo
+        const filePath = path.join(uploadPath, filename);
+
+        //Verificar si el archivo existe antes de eliminarlo
+        if (fs.existsSync(filePath)) {
+            console.log(`Archivo eliminado: ${filename}`);
+            return true;
+        } else {
+            console.log(`Archivo no encontrado: ${filename}`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`Error al eliminar el archivo: ${error.message}`);
+        return false;
+    }   
+};
+
+//Exportar configuracion de multer y la funcion de eliminar archivos
+module.exports = {
+    upload,
+    deleteFile
+};
