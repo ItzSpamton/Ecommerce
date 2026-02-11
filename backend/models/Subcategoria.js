@@ -127,33 +127,27 @@ const Subcategoria = sequelize.define('Subcategoria', {
          * afterUpdate: se ejecuta despues de actualziar una subcategoria
          * si se desactiva una subcategoria, se desactivan todas sus productos relacionados
          */
-        
+
         afterUpdate: async (subcategoria, options) => {
             //Verificar si el campo activo cambio 
             if (subcategoria.changed('activo') && !subcategoria.activo) {
-                console.log(`Desactivando subcategoria ${subcategoria.nombre}`);
+                console.log(`Desactivando subcategoria;`, subcategoria.nombre);
 
                 //Importar modelos (aqui para evitar dependencias circulares)
-                const Subcategoria = require('./Subcategoria');
                 const Producto = require('./Producto');
 
                 try {
-                    //Paso 1 desactivar las subcategorias de esta categoria
-                    const subcategorias = await Subcategoria.findAll({ where: { categoriaId: subcategoria.categoriaId } });
-                    for (const subcategoria of subcategorias) {
-                        await subcategoria.update({ activo: false }, { transaction: options.transaction });
-                        console.log(`Subcategoria desactivada: ${subcategoria.nombre}`);
-                    }
-
-                    //paso 2 desactivar los productos de esta subcategoria 
+                    //Paso 1 desactivar los productos de esta subcategoria
                     const productos = await Producto.findAll({ where: { subcategoriaId: subcategoria.id } });
+                    
                     for (const producto of productos) {
                         await producto.update({ activo: false }, { transaction: options.transaction });
-                        console.log(`Producto desactivado: ${producto.nombre}`);
+                        console.log(`Producto desactivado:`, producto.nombre);
                     }
-                    console.log(`Subcategoria y elementos relacionados desactivados correctamente`);
+                    
+                    console.log(`Subcategoria y productos relacionados desactivados correctamente`);
                 } catch (error) {
-                    console.error(`Error al desactivar subcategoria y elementos relacionados: ${error.message}`);
+                    console.error(`Error al desactivar subcategoria y productos relacionados:`, error.message);
                     throw error;
                 }
             }
@@ -168,7 +162,7 @@ const Subcategoria = sequelize.define('Subcategoria', {
  * 
  * @return {Promise<number>} - numero de subcategorias activas
  */
-categoria.prototype.getSubcategorias = async function() {
+Subcategoria.prototype.getSubcategorias = async function() {
     const Subcategoria = require('./Subcategoria');
     return await Subcategoria.count({ where: { categoriaId: this.id,} });
 };
@@ -178,10 +172,20 @@ categoria.prototype.getSubcategorias = async function() {
  * 
  * @return {Promise<number>} - numero de productos activos
  */
-categoria.prototype.getproductos = async function() {
+Subcategoria.prototype.getproductos = async function() {
     const producto = require('./producto');
     return await producto.count({ where: { categoriaId: this.id,} });
 };
 
-//Exportar el modelo de Categoria
-module.exports = Categoria;
+/**
+ * Metodo para obtener la categoria padre
+ * 
+ * @return {Promise<Categoria>} - objeto categoria padre
+ */
+Subcategoria.prototype.getCategoria = async function() {
+    const Categoria = require('./Categoria');
+    return await Categoria.findByPk(this.categoriaId);
+};
+
+//Exportar el modelo de Subcategoria
+module.exports = Subcategoria;
