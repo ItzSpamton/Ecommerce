@@ -105,3 +105,27 @@ const Categoria = sequelize.define('Categoria', {
         }
     }
 });
+
+// METODOS DE INSTANCIA
+/**
+ * Metodo para obtener subcategorias activas de esta categoria
+ * 
+ * @return {Promise<number>} - numero de subcategorias activas
+ */
+Categoria.prototype.getSubcategorias = async function() {
+    const Subcategoria = require('./Subcategoria');
+    return await Subcategoria.count({ where: { categoriaId: this.id } });
+};
+
+/**
+ * Metodo para obtener productos activos de esta categoria
+ * 
+ * @return {Promise<number>} - numero de productos activos
+ */
+Categoria.prototype.getProductos = async function() {
+    const Producto = require('./Producto');
+    return await Producto.count({ where: { categoriaId: this.id } });
+};
+
+// Exportar el modelo de Categoria
+module.exports = Categoria;
