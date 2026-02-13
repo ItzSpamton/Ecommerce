@@ -1,191 +1,277 @@
 /**
  * MODELO DE PRODUCTO
- * Define la tabla de subcategoria en la base de datos
- * Almacena los producytos
+ * Define la tabla Producto en la base de datos
+ * Almacena los productos
+ */
 
-//Importar datatype
-**/
+//Importar DataTypes de sequelize
 const { DataTypes } = require('sequelize');
 
-//Importar instacia de sequelize
-const sequelize = require('../config/database');
-const { before } = require('node:test');
+//Importar instance de squelize
+const { sequelize } = require('../config/database');
 
 /**
- * Definir el modelo de Subcategoria
+ * Definir el modelo de Categoria
  */
-const Subcategoria = sequelize.define('Subcategoria', {
-    //Campos de la tabla 
-    //Id Identificador unico (PRIMARY KEY)
+const Producto = sequelize.define('Producto', {
+    //Campos de la tabla
+    //ID Identificador unico (PRIMARY KEY)
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-        allowNull: false
+        allowNull: false,
+    },
+
+    nombre: {
+        type: DataTypes.STRING(200),
+        allowNull: false,
+        validate: {
+            notEmpty:{
+                msg:'El nombre del producto no puede estar vacio'
+            },
+            len:{
+                args: [3,200],
+                msg: 'El nombre debe tener entre 3 y 200 caracteres'
+            }
+        }
     },
 
     /**
-     * categoriaId - ID de la categoria a la que pertenece esta subcategoria (FOREIGN KEY)
-     * esta es la relacion con la tabla categoria
+     * Descripcion detallada del producto
+     */
+    descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+
+    //Precio del producto
+    precio:{
+        type: DataTypes.DECIMAL(10,2), //hasta 99,999,999.99
+        allowNull: false,
+        validate:{
+            isDecimal:{
+                msg: 'El precio debe ser un numero decimal valido'
+            },
+            min:{
+                args:[0],
+                msg: 'El precio no puede ser negativo'
+            }
+        }
+    },
+
+        //Stock del producto cantidad disponible en inventario
+    stock:{
+        type: DataTypes.INTEGER, //hasta 99,999,999.99
+        allowNull: false,
+        defaultValue: 0,
+        validate:{
+            isInt:{
+                msg: 'El stock debe ser un numero entero'
+            },
+            min:{
+                args:[0],
+                msg: 'El stock no puede ser negativo'
+            }
+        }
+    },
+
+    /**
+     * imagen Nombre del archivo de imagen
+     * se guardara solo el nombre ejemplo: coca-cola-producto.jpg
+     * la ruta seria /uploads/coca-cola-productos.jpg
+     */
+    imagen:{
+        type:DataTypes.STRING(255),
+        allowNull: true, //la imagen puede ser opcional
+        validate: {
+            is:{
+                args: /\. (jpg|jpeg|png|gif)$/i,
+                msg: 'La imagen debe ser un archivo JPG, JPEG, PNG o GIF'
+            }
+        }
+    },
+    /**
+     * 
+     * 
+     */
+
+        subcategoriaId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'subcategorias', //nombre de la tabla relacionada
+            key: 'id' //campo de la tabla relacionada
+        },
+        onUpdate: 'CASCADE', //si se actualiza  el id, actializar aca tambien
+        onDelete: 'CASCADE', //si se borra la categoria, borrar esta subcategoria
+        validate: {
+            notNull: {
+                msg: ' debe seleccionar una subcategoria'
+            }
+        }
+    },
+    
+    /**
+     * CategoriaId - Id de la categoria a la que pertenece (FOREIGN KEY)
+     * Esta es la relacion con la table categoria
      */
     categoriaId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
             model: 'categorias', //nombre de la tabla relacionada
-            key: 'id' //campo id de la tabla relacionada
+            key: 'id' //campo de la tabla relacionada
         },
-        onUpdate: 'CASCADE', //si se actualiza el id de la categoria, se actualiza en esta tabla
-        onDelete: 'CASCADE', //si se elimina la categoria, se eliminan las subcategorias relacionadas
+        onUpdate: 'CASCADE', //si se actualiza  el id, actializar aca tambien
+        onDelete: 'CASCADE', //si se borra la categoria, borrar esta subcategoria
         validate: {
             notNull: {
-                msg: "Debe seleccionar la categoria"
-            },
-    },
-    },
-
-    nombre: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-        unique: {
-            msg: "El nombre de la subcategoria ya existe"
-        },
-        validate: {
-            notEmpty: {
-                msg: "El nombre de la subcategoria no puede estar vacio"
-            },
-            len: {
-                args: [3, 100],
-                msg: "El nombre de la subcategoria debe tener entre 3 y 100 caracteres"
+                msg: ' debe seleccionar una categoria'
             }
         }
     },
 
     /**
-     * Descripcion de la subcategoria 
-     */
-    descripcion: {
-        type: DataTypes.TEXT,
-        allowNull: true
-    },
-    /**activo estado de la subcategoria
-     * si es false la subcategoria y sus productos se ocultan
+     * activo estado de la subcategoria
+     * si es false los productos de esta subcategoria se ocultan
      */
     activo: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true
     }
+
 }, {
     //opciones del modelo
 
-    tableName: 'subcategorias', 
-    timestamps: true, //crea campos createdAt y updatedAt
+    tableName: 'productos',
+    timestamps: true, //agrega campos createdAt y updatedAt
 
-    /**indices compuestos para optimizar busqueda
-     * 
+    /**
+     * indices compuestos para optimizar busquedas
      */
     indexes: [
-        { 
-            //Indice para buscar subcategorias por categoria
+        {
+            //Indice para buscar Productos por subcategoria
+            fields: ['subcategoriaId']
+        },
+        {
+            //Indice para buscar Productos por categoria
             fields: ['categoriaId']
         },
         {
-            //indice compuesto: nombre unico por categoria
-            //Permite que dos categorias diferentes tengan subcategorias con el mismo nombre
-            unique: true,
-            fields: ['nombre', 'categoriaId'],
-            name: 'unique_subcategoria_nombre_categoria'
-        }
+            //indece para buscar productos activos
+            fields:['activo']
+        },
+                {
+            //indece para buscar productos por nombre
+            fields:['nombre']
+        },
     ],
 
     /**
-     * Hooks Acciones automaticas 
+     * Hooks Acciones automaticas
      */
 
     hooks: {
         /**
-         * beforeCreate: Antes de crear una subcategoria
-         * verifica que la categoria padre esta activa 
+         * beaforeUpdate: se ejecuta despues de actualizar un producto
+         * valida que la subcategoria y que la categoria esten activas
          */
-        beforeCreate: async (subcategoria) => {
+
+        beforeCreate: async (producto) => {
             const Categoria = require('./Categoria');
+            const Subcategoria = require('./Subategoria');
+
+            
+            //Buscar subcategoria padre
+            const subcategoria = await Subategoria.findByPk(producto.subcategoriaId);
+            if(!categoria) {
+                throw new Error('La subcategoria seleccionada no existe');
+            }
+
+            if (!subcategoria.activo){
+                throw new Error('No se puede crear una subcategoria en un producto en una subcategoria inactiva');
+            }
 
             //Buscar categoria padre
-            const categoria = await Categoria.findByPk(subcategoria.categoriaId);
-
-            if (!categoria) {
+            const categoria = await Categoria.findByPk(produto.categoriaId);
+            if(!categoria) {
                 throw new Error('La categoria seleccionada no existe');
             }
 
-            if (!categoria.activo) {
-                throw new Error('No se puede crear una subcategoria para una categoria inactiva');
+            if (!categoria.activo){
+                throw new Error('No se puede crear un producto en una categoria inactiva');
+            }
+
+            // validar que la subcategoria pertenezca a una categoria 
+            if (subcategoria.categoriaId !== producto.categoriaId) {
+                throw new Error('La subcategoria no pertenece a la categoria seleccionada')
             }
         },
 
         /**
-         * afterUpdate: se ejecuta despues de actualziar una subcategoria
-         * si se desactiva una subcategoria, se desactivan todas sus productos relacionados
+         * beforeDestroy: se ejecuta antes de eliminar un producto
+         * Elimina la imagen del servidor si existe
          */
 
-        afterUpdate: async (subcategoria, options) => {
-            //Verificar si el campo activo cambio 
-            if (subcategoria.changed('activo') && !subcategoria.activo) {
-                console.log(`Desactivando subcategoria;`, subcategoria.nombre);
+        beforeDestroy: async (producto) => {
+            if (producto.imagen) {
+                const { deleteFile} = require('../config/multer');
+                // intenta eliminar la imagen del servidor
+                const eliminado = await deleteFile (producto.imagen);
 
-                //Importar modelos (aqui para evitar dependencias circulares)
-                const Producto = require('./Producto');
-
-                try {
-                    //Paso 1 desactivar los productos de esta subcategoria
-                    const productos = await Producto.findAll({ where: { subcategoriaId: subcategoria.id } });
-                    
-                    for (const producto of productos) {
-                        await producto.update({ activo: false }, { transaction: options.transaction });
-                        console.log(`Producto desactivado:`, producto.nombre);
-                    }
-                    
-                    console.log(`Subcategoria y productos relacionados desactivados correctamente`);
-                } catch (error) {
-                    console.error(`Error al desactivar subcategoria y productos relacionados:`, error.message);
-                    throw error;
+                if (eliminado) {
+                    console.log(`Imagen eliminada: ${producto.imagen}`)
                 }
             }
-            // Si se activa una categoria no se activan automaticamente las subcategorias y producto
-        }
+        },
+        
     }
 });
 
-// MEOTODOS DE INSTANCIA 
+// METODOS DE INSTANCIA
 /**
- * Metodo para obtener subcategorias activas de esta categoria
+ * Metodo para obtener la url completa de la imagen
  * 
- * @return {Promise<number>} - numero de subcategorias activas
+ * @returns {string|null} - url de la imagen
  */
-Subcategoria.prototype.getSubcategorias = async function() {
-    const Subcategoria = require('./Subcategoria');
-    return await Subcategoria.count({ where: { categoriaId: this.id,} });
+Producto.prototype.obtenerUrlImagen = function(){
+    if (this.imagen) {
+        return null; 
+    }
+
+    const baseUrl = ProcessingInstruction.env.FRONTED_URL || 'http://localhost:500'
+    return `${baseUrl}/uploads/${this.imagen}`;
 };
 
 /**
- * Metodo para obtener subcategorias activas de esta categoria
+ * metodo para verificar si hay stock disponible
  * 
- * @return {Promise<number>} - numero de productos activos
+ * @param {number} cantidad - cantidad deseada
+ * @returns {boolean} - true si ay stock suficiente false si no 
  */
-Subcategoria.prototype.getproductos = async function() {
-    const producto = require('./Producto');
-    return await producto.count({ where: { categoriaId: this.id,} });
+Producto.prototype.hayStock = function(cantidad) {
+    this.stock += cantidad;
+    return this.save();
 };
 
 /**
- * Metodo para obtener la categoria padre
- * 
- * @return {Promise<Categoria>} - objeto categoria padre
+ * Metodo para reducir el stock
+ * util para despues de una venta
+ * @param {number} cantidad - cantidad a reducir
+ * @returns {Promise<Producto>} - Producto actualizado
  */
-Subcategoria.prototype.getCategoria = async function() {
-    const Categoria = require('./Categoria');
-    return await Categoria.findByPk(this.categoriaId);
+
+Producto.prototype.aumentarStock = async function (cantidad){
+    if (this.hayStock(cantidad)){
+        throw new Error('Stock insuficiente');
+    }
+    this.stock -=cantidad;
+    return await this.save();
 };
 
-//Exportar el modelo de Subcategoria
-module.exports = Subcategoria;
+
+// Exportar el modelo de Categoria
+module.exports =  Producto;
