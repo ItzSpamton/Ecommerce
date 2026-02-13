@@ -173,7 +173,7 @@ Subcategoria.prototype.getSubcategorias = async function() {
  * @return {Promise<number>} - numero de productos activos
  */
 Subcategoria.prototype.getproductos = async function() {
-    const producto = require('./producto');
+    const producto = require('./Producto');
     return await producto.count({ where: { categoriaId: this.id,} });
 };
 
