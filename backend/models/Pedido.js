@@ -1,7 +1,7 @@
 /**
- * MODELO DE CARRITO
- * Define la tabla de carrito en la base de datos
- * Almacena los productos que cada usuario ha agregado al carrito
+ * MODELO DE PEDIDO
+ * Define la tabla de pedido en la base de datos
+ * Almacena la informacion de los pedidos realizados por los usuarios 
  */
 
 //Importar DB de sequelize
@@ -9,12 +9,12 @@ const { DataTypes } = require('sequelize');
 
 //Importar instacia de sequelize
 const sequelize = require('../config/database');
-const Producto = require('./Producto');
+const e = require('express');
 
 /**
  * Definir el modelo de Carrito
  */
-const Carrito = sequelize.define('Carrito', {
+const Pedido = sequelize.define('Pedido', {
     //Campos de la tabla 
     //Id Identificador unico (PRIMARY KEY)
     id: {
@@ -32,13 +32,77 @@ const Carrito = sequelize.define('Carrito', {
             key: 'id' //campo de la tabla relacionada
         },
         onUpdate: 'CASCADE', 
-        onDelete: 'CASCADE', //Si se elimina usuario, se elimina el carrito
+        onDelete: 'RESTRICT', //no se puede eliminar un usuario con pedidos
         validate: {
             notNull: {
                 msg: 'Debe especificar un usuario'
             }
         }
     },
+
+    //total monto total del pedido
+    total: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        validate: {
+            isDecimal: {
+                msg: 'el precio debe ser un numero decimal valido'
+            },
+            min: {
+                arg: [0],
+                msg: 'el precio no puede der negativo'
+            }
+        }
+    },
+
+    /**
+     * Estado - estado del pedido
+     * valores posibles:
+     * pendiente: pedido creado, esperando pago
+     * pagado: pedido pagado, en preparacion
+     * enviado: pedido enviado, en camino
+     * cancelado: pedido cancelado
+     */
+    estado: {
+        type: DataTypes.ENUM('pendiente', 'pagado', 'enviado', 'cancelado'),
+        allowNull: false,
+        defaultValue: 'pendiente',
+        validate: {
+            isIn: {
+                args: [['pendiente', 'pagado', 'enviado', 'cancelado']],
+                msg: 'El estado debe ser pendiente, pagado, enviado o cancelado'
+            }
+        }
+    },
+
+    //direccion de envio del pedido 
+    direccionEnvio: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        validate: {
+            notEmpty: {
+                msg: 'La direccion de envio es obligatoria'
+            }
+        }
+    },
+
+    //telefono de contacto para el envio
+    telefono: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        validate: {
+            notEmpty: {
+                msg: 'El telefono de contacto es obligatorio'
+            }
+        }
+    },
+
+    //notas adicionales del pedido(opcional)
+    notas: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+
     //ProductoId ID del producto del usuario dueño del carrrito
     productoId: {
         type: DataTypes.INTEGER,
